@@ -15,13 +15,30 @@ class EmployeeDetails(APIView):
         serializer = EmployeeSerializer(obj,many = True)
         return R(data=serializer.data,status=status.HTTP_200_OK)
 
-    def post(self,request):
-        serializer = EmployeeSerializer(data = request.data)
+    # def post(self,request):
+    #     serializer = EmployeeSerializer(data = request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return R(data=serializer.data,status=status.HTTP_201_CREATED)
+    #     print(serializer.errors)
+    #     return R(data=serializer.data,status=status.HTTP_400_BAD_REQUEST)
+
+    def post(self, request):
+        serializer = EmployeeSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return R(data=serializer.data,status=status.HTTP_201_CREATED)
+            employee = serializer.save()
+            project_ids = request.data.get('project', [])
+            for project_id in project_ids:
+                try:
+                    project = Projects.objects.get(id=project_id)
+                    project.team.add(employee)
+                except Projects.DoesNotExist:
+                    return R(data={"error": f"No such project found with ID {project_id}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            return R(data=serializer.data, status=status.HTTP_201_CREATED)
+
         print(serializer.errors)
-        return R(data=serializer.data,status=status.HTTP_400_BAD_REQUEST)
+        return R(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class EmployeeDepartmentInfo(APIView):
     def get(self,request,fid):
@@ -47,20 +64,57 @@ class EmployeeInfo(APIView):
         serializer = EmployeeSerializer(obj)
         return R(serializer.data,status=status.HTTP_200_OK)
 
-    def put(self,request,fid):
-        try:
-            obj = Employee.objects.get(id=fid)
-        except Employee.DoesNotExist:
-             msg = {"msg":"not found"}
-             return R(msg,status=status.HTTP_404_NOT_FOUND)
+    # def put(self,request,fid):
+    #     try:
+    #         obj = Employee.objects.get(id=fid)
+    #     except Employee.DoesNotExist:
+    #          msg = {"msg":"not found"}
+    #          return R(msg,status=status.HTTP_404_NOT_FOUND)
         
-        serializer = EmployeeSerializer(obj,data=request.data,partial=True)
+    #     serializer = EmployeeSerializer(obj,data=request.data,partial=True)
 
-        if serializer.is_valid():
-            serializer.save()
-            return R(serializer.data,status=status.HTTP_205_RESET_CONTENT)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return R(serializer.data,status=status.HTTP_205_RESET_CONTENT)
         
-        return R(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    #     return R(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    def put(self, request, pk):
+        try:
+            employee = Employee.objects.get(pk=pk)
+        except Employee.DoesNotExist:
+            return R(data={"error": "Employee not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = EmployeeSerializer(employee, data=request.data)
+        if serializer.is_valid():
+           
+            current_projects = list(employee.project.values_list('id', flat=True))
+            updated_employee = serializer.save()
+
+          
+            new_project_ids = request.data.get('project', [])
+
+
+            for project_id in current_projects:
+                if project_id not in new_project_ids:
+                  
+                    try:
+                        project = Projects.objects.get(id=project_id)
+                        project.team.remove(updated_employee)
+                    except Projects.DoesNotExist:
+                        continue 
+
+            for project_id in new_project_ids:
+                if project_id not in current_projects:
+                    try:
+                        project = Projects.objects.get(id=project_id)
+                        project.team.add(updated_employee)
+                    except Projects.DoesNotExist:
+                        return R(data={"error": f"No such project found with ID {project_id}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            return R(data=serializer.data, status=status.HTTP_200_OK)
+
+        print(serializer.errors)
+        return R(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self,request,fid):
         try:
@@ -131,12 +185,47 @@ class ProjectInfo(APIView):
         serializer = ProjectSerializer(obj,many = True)
         return R(data=serializer.data,status=status.HTTP_200_OK)
 
-    def post(self,request):
-        serializer = ProjectSerializer(data = request.data)
+    # def post(self,request):
+    #     serializer = ProjectSerializer(data = request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return R(data=serializer.data,status=status.HTTP_201_CREATED)
+    #     return R(data=serializer.data,status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request):
+        serializer = ProjectSerializer(data=request.data)
+        
         if serializer.is_valid():
-            serializer.save()
-            return R(data=serializer.data,status=status.HTTP_201_CREATED)
-        return R(data=serializer.data,status=status.HTTP_400_BAD_REQUEST)
+            project = serializer.save()
+
+            employee_ids = request.data.get('team', [])
+            
+            invalid_employee_ids = []
+
+           
+            for employee_id in employee_ids:
+                try:
+                    
+                    employee = Employee.objects.get(id=employee_id)
+                    
+                    
+                    project.team.add(employee)  
+                    
+                    
+                    employee.project.add(project) 
+                    
+                except Employee.DoesNotExist:
+                    
+                    invalid_employee_ids.append(employee_id)
+
+            if invalid_employee_ids:
+                return Response(
+                    data={"error": f"No such employee(s) found with ID(s): {', '.join(map(str, invalid_employee_ids))}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            return R(data=serializer.data, status=status.HTTP_201_CREATED)
+
+        return R(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ProjectDetails(APIView):
     def get(self,request,fid):

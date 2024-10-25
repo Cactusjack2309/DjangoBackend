@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'crudapp',
     # 'crispy_forms',
     # 'crispy_bootstrap5',
-    'rest_framework'
+    'rest_framework',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -49,6 +50,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -89,6 +91,8 @@ DATABASES = {
         'PORT': '5432'
     }
 }
+CORS_ALLOW_ALL_ORIGINS = True
+
 
 
 # Password validation

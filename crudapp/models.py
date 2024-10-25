@@ -11,7 +11,7 @@ class Employee(models.Model):
     designation = models.CharField(max_length=20,default="NA")
     department = models.ForeignKey(Department,on_delete=models.CASCADE)
     address = models.CharField(max_length=100,default="NA")
-    project = models.ManyToManyField('Projects', related_name= 'team_members',default = [])
+    project = models.ManyToManyField(to='Projects', related_name= 'team_members',default = [])
 
 class Projects(models.Model):
 
