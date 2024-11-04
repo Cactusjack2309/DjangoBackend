@@ -49,7 +49,7 @@ class EmployeeDepartmentInfo(APIView):
             msg = {"msg":"not found"}
             return R(msg,status=status.HTTP_404_NOT_FOUND)
         
-        department_name = obj.department.dname if obj.department else "No department assigned"
+        department_name = obj.department.dname if obj.department else "No department is assigned"
         return R(department_name,status=status.HTTP_200_OK)
     
 class EmployeeInfo(APIView):
