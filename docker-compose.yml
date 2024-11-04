@@ -6,8 +6,8 @@ services:
       dockerfile: Dockerfile.jenkins
     container_name: jenkins_pipeline
     ports:
-      - "8080:8080"   # Expose Jenkins UI on port 8080
-      - "50000:50000" # Expose Jenkins agent port
+      - "8081:8080"   
+      - "50001:50000" 
     volumes:
       - jenkins_home:/var/jenkins_home  # Persist Jenkins data
       - /var/run/docker.sock:/var/run/docker.sock # Use the host's Docker socket
