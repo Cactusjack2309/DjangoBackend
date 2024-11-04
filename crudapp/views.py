@@ -109,7 +109,7 @@ class EmployeeInfo(APIView):
                         project = Projects.objects.get(id=project_id)
                         project.team.add(updated_employee)
                     except Projects.DoesNotExist:
-                        return R(data={"error": f"No such project found with ID {project_id}"}, status=status.HTTP_400_BAD_REQUEST)
+                        return R(data={"error": f"No such project found with that ID {project_id}"}, status=status.HTTP_400_BAD_REQUEST)
 
             return R(data=serializer.data, status=status.HTTP_200_OK)
 
