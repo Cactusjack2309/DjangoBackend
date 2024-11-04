@@ -142,16 +142,24 @@ class DepartmentDetails(APIView):
     
 
 class DepartmentInfo(APIView):
-    def get(self,request,fid):
-        try:
-            obj = Department.objects.get(id=fid)
+    queryset = Department.objects.all()
+    serializer_class = DepartmentSerializer
 
+    def get_object(self, fid):
+        try:
+            return Department.objects.get(pk=fid)
         except Department.DoesNotExist:
-            msg = {"msg":"not found"}
-            return R(msg,status=status.HTTP_404_NOT_FOUND)
-        
-        serializer = DepartmentSerializer(obj)
-        return R(serializer.data,status=status.HTTP_200_OK)
+            raise Exception("Department not found")
+
+    def get(self, request, fid):
+        department = self.get_object(fid)  
+        employees = department.employee_set.all()  
+        department_data = {
+            "id": department.id,
+            "dname": department.dname,
+            "employees": [{"id": emp.id, "first_name": emp.first_name, "salary": emp.salary, "designation": emp.designation} for emp in employees]
+        }
+        return R(department_data)
     
     def put(self,request,fid):
         try:
@@ -358,17 +366,56 @@ class Budget(APIView):
         return R({'project_id': project.id, 'total_budget': budget}, status=status.HTTP_200_OK)
 
 class Highest_salary(APIView):
-    def get(self,request):
-        employees = Employee.objects.all()
-        highest = max(employee.salary for employee in employees)
-        return R({'highest salary': highest}, status=status.HTTP_200_OK)
+    def get(self, request):
+        try:
+            highest_salary_employee = Employee.objects.order_by('-salary').first()
+            if highest_salary_employee:
+                
+                response_data = {
+                    'id': highest_salary_employee.id,
+                    'first_name': highest_salary_employee.first_name,
+                    'salary': highest_salary_employee.salary,
+                    
+                }
+                return R(response_data, status=status.HTTP_200_OK)
+            else:
+                return R({'error': 'No employees found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return R({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class Second_highest(APIView):
-    def get(self,request):
-        employees = Employee.objects.all()
-        set_salary = sorted(set(employee.salary for employee in employees), reverse=True)
-        second_highest = set_salary[1]
-        return R({'second highest salary': second_highest}, status=status.HTTP_200_OK)
+    def get(self, request):
+        try:
+            employees = Employee.objects.all()
+            if not employees:
+                return Response({'error': 'No employees found'}, status=status.HTTP_404_NOT_FOUND)
+
+          
+            unique_salaries = sorted(set(employee.salary for employee in employees), reverse=True)
+
+            if len(unique_salaries) < 2:
+                return R({'error': 'Not enough distinct salaries to determine second highest'}, status=status.HTTP_404_NOT_FOUND)
+
+            second_highest_salary = unique_salaries[1]  
+
+            second_highest_employees = Employee.objects.filter(salary=second_highest_salary)
+
+            response_data = {
+                'second_highest_salary': second_highest_salary,
+                'employees': [
+                    {
+                        'id': employee.id,
+                        'first_name': employee.first_name,
+                        'salary': employee.salary,
+                    }
+                    for employee in second_highest_employees
+                ]
+            }
+
+            return R(response_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return R({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class SalaryDep(APIView):
     def get(self,request):
