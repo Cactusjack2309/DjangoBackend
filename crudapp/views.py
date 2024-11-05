@@ -227,7 +227,7 @@ class ProjectInfo(APIView):
 
             if invalid_employee_ids:
                 return Response(
-                    data={"error": f"No such employee(s) found with ID(s): {', '.join(map(str, invalid_employee_ids))}"},
+                    data={"error": f"No such employee found with ID: {', '.join(map(str, invalid_employee_ids))}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
